@@ -51,7 +51,7 @@ sf.prey <- prey %>%
 gp_map <- gp %>%
   mapview(zcol = "type4",               
           cex = 4, lwd = 0.5, alpha = 1,
-          col.regions = c("blue", "white", "yellow", "red"),
+          col.regions = c("green", "white", "purple", "red"),
           na.color = "transparent",
           map.types = 'Esri.WorldImagery',
           #    map.types = 'Esri.WorldTopoMap',  # Try different map types
@@ -69,7 +69,7 @@ gp_map2 = gp_map@map %>%
              lng = ~ (st_coordinates(sf.prey)[,1]),   #nest long
              lat = ~ (st_coordinates(sf.prey)[,2]),   # nest lat
              radius = c(200),   # radius from nest, in meter                                
-             color = "steelblue4",     
+             color = "orange",     
              fillColor = "steelblue",
              fillOpacity = 0.4,
              stroke = TRUE,
@@ -80,3 +80,45 @@ gp_map2
 
 # Save the leaflet map as an HTML file
 saveWidget(gp_map2 , "./supplement/leafletmap_gp_locations_preycolony_200mradius.html", selfcontained = TRUE)
+
+
+#---------------------------------------------------------------------
+# plot only prey locations - this converts mapview class to a leaflet map
+#---------------------------------------------------------------------
+#---------------------------------
+# Create map with prey locations
+#---------------------------------
+gp_map_prey <- gp %>%
+  filter(type == "nest") %>%
+  mapview(zcol = "type4",               
+          cex = 4, lwd = 0.5, alpha = 1,
+          col.regions = c("green",  "purple"),
+          na.color = "transparent",
+          map.types = 'Esri.WorldImagery',
+          #    map.types = 'Esri.WorldTopoMap',  # Try different map types
+          crs = wgs84,
+          grid = FALSE,  # Remove grid lines 
+          leaflet = TRUE)  # Convert to leaflet map
+
+gp_map_prey
+
+#---------------------------------------------------------------------
+# Add prey locations - this converts mapview class to a leaflet map
+#---------------------------------------------------------------------
+gp_map_prey2 = gp_map_prey@map %>%
+  addCircles(data = sf.prey,
+             lng = ~ (st_coordinates(sf.prey)[,1]),   #nest long
+             lat = ~ (st_coordinates(sf.prey)[,2]),   # nest lat
+             radius = c(200),   # radius from nest, in meter                                
+             color = "orange",     
+             fillColor = "white",
+             fillOpacity = 0.4,
+             stroke = TRUE,
+             opacity = 0.5,
+             weight = 2) 
+
+gp_map_prey2
+
+# Save the leaflet map as an HTML file
+#saveWidget(gp_map2 , "./supplement/leafletmap_preycolony_200mradius.html", selfcontained = TRUE)
+

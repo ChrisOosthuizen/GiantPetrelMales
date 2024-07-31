@@ -55,16 +55,15 @@ vud.males.raster <- stack(vud.males.ngp, vud.males.sgp)
 names(vud.males.raster) <- c("Northern giant petrel", "Southern giant petrel")
 raster::plot(vud.males.raster, col = terrain.colors(100))
 
-# Calculate overlap between UDs method = "BA"
-overlapBA <- kerneloverlaphr(kud, method = "BA", percent = 95)
-overlapBA
-
 # Calculate overlap between UDs method = "UDOI"
 overlapUDOI95 <- kerneloverlaphr(kud, method = "UDOI", percent = 95, conditional = T)
 overlapUDOI95
 
 overlapUDOI50 <- kerneloverlaphr(kud, method = "UDOI", percent = 50, conditional = T)
 overlapUDOI50
+
+kerneloverlaphr(kud, method="HR", percent = 95, conditional=TRUE)
+kerneloverlaphr(kud, method="HR", percent = 50, conditional=TRUE)
 
 # Area of UD (NB: have to check whether this is correct based on projection)
 kernel.area(kud, percent = c(50, 95),
@@ -146,15 +145,15 @@ marionmap = ggplot(data = island) +
         axis.text.y = element_text(size = 9)) + 
   gg_theme() +
   theme(
-    legend.position = "inside", legend.position.inside = c(1, 1),  # Adjust legend position
+    legend.position = "inside", legend.position.inside = c(0.98, 1),  # Adjust legend position
     legend.justification = c(1, 1),  # Justify legend to bottom-right
     legend.box.just = "right",
     legend.direction="horizontal",
     legend.background = element_blank(),
     legend.box.background = element_blank(),
-    legend.key.size = unit(0.8,"line"),  
-    legend.title = element_text( size=10), 
-    legend.text=element_text(size=10))
+    legend.key.size = unit(0.7,"line"),  
+    legend.title = element_text( size=9), 
+    legend.text=element_text(size=9))
 marionmap
 
 # add UDs
@@ -162,7 +161,7 @@ marionmap_UDall = marionmap +
   geom_tile(data = kern, aes(x = lon, y = lat, fill = val)) +
   facet_wrap(~scientific_name) +
   scale_fill_viridis(direction = 1, option = "plasma",
-                     name = "UD (%)") +
+                     name = "UD (%)", limits = c(0, 100)) +
   labs(x = "Longitude", y = "Latitude") + 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
@@ -174,7 +173,7 @@ marionmap_UDall = marionmap_UDall +
   layer_spatial(data = nest_locs, aes(color = scientific_name), size = 1.2, inherit.aes = TRUE, show.legend = FALSE) +
   coord_sf(xlim = c(xmin, xmax), ylim = c(ymin, ymax), expand = F)+
   #  scale_colour_manual(values = c("#4daf4c", "#984ea6")) + facet_wrap(~scientific_name) + 
-  scale_colour_manual(values = c("red", "red")) + 
+  scale_colour_manual(values = c("#4daf4c", "red")) + 
   facet_wrap(~scientific_name)  
 
 marionmap_UDall 
@@ -226,19 +225,19 @@ kildalkeymapUD = kildalkeymap +
   geom_tile(data = kern, aes(x = lon, y = lat, fill = val)) +
   facet_wrap(~scientific_name) +
   scale_fill_viridis(direction = 1, option = "plasma",
-                     name = "UD (%)",limits = c(0, 100)) +
+                     name = "UD (%)", limits = c(0, 100)) +
   labs(x = "Longitude", y = "Latitude") + 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
   theme(
-    legend.position = "inside", legend.position.inside = c(1, 1),  # Adjust legend position
+    legend.position = "inside", legend.position.inside = c(0.98, 1),  # Adjust legend position
     legend.justification = c(1, 1),  # Justify legend to bottom-right
     legend.box.just = "right",
     legend.direction="horizontal",
     legend.background = element_blank(),
     legend.box.background = element_blank(),
-    legend.key.size = unit(0.8,"line"),  
-    legend.title = element_text( size=10), 
-    legend.text=element_text(size=10))
+    legend.key.size = unit(0.7,"line"),  
+    legend.title = element_text( size=9), 
+    legend.text=element_text(size=9))
 
 kildalkeymapUD 
 
@@ -250,7 +249,7 @@ kildalkeymapUD = kildalkeymapUD +
            label = "Kildalkey\nBay",
            colour = "black", size = 3) + 
   facet_wrap(~scientific_name) +
-  scale_colour_manual(values = c("red", "red")) 
+  scale_colour_manual(values = c("#4daf4c", "red")) 
 
 
 kildalkeymapUD
@@ -270,6 +269,35 @@ pdf("./figures/utilization_distributions_kildalkey.pdf", width = 6, height = 6, 
 kildalkeymapUD
 dev.off()
 
+
+marionmap_UDall2 = marionmap_UDall + 
+  theme(axis.text.x=element_blank(),
+        axis.title.x=element_blank()) +
+  theme(axis.text.x = element_text(size = 9),
+        axis.text.y = element_text(size = 9)) + 
+  theme(plot.margin = margin(1, 1, 1, 1))
+  
+kildalkeymapUD2 = kildalkeymapUD + 
+  theme(axis.text.x = element_text(size = 9),
+        axis.text.y = element_text(size = 9)) +
+  theme(strip.text = element_blank()) + 
+  annotate(geom = "text", x = 37.868, y = -46.923,
+           label = "Bullard\nNorth",
+           colour = "black", size = 3) + 
+  theme(plot.margin = margin(1, 1, 1, 1))
+
+combined_plot = marionmap_UDall2 / kildalkeymapUD2 + 
+  plot_layout(heights = c(1, 2.15)) & 
+  theme(plot.tag.position = c(0.1, 0.98)) & 
+  plot_annotation(tag_levels = 'A') & 
+  theme(plot.tag = element_text(size = 12))
+
+combined_plot
+
+# save plot
+pdf("./figures/utilization_distributions_combined.pdf", width = 6, height = 6, useDingbats = FALSE)
+combined_plot
+dev.off()
 
 #--------------------------------
 # Do this for each individual:
@@ -619,7 +647,7 @@ g_final <- g_final +
                fun = median, geom = "point", 
                shape = 95, size = 20) +
   geom_point(size = 3, alpha = 0.5) +
-  geom_text(aes(label = ifelse(is_outlier, site_spp, NA)), 
+  geom_text(aes(label = ifelse(is_outlier, site, NA)), 
             hjust = 0, vjust = 0, size = 3, nudge_x = 0.04)
 
 print(g_final)
@@ -673,7 +701,7 @@ g2_final <- g2_final +
                fun = median, geom = "point", 
                shape = 95, size = 20) +
   geom_point(size = 3, alpha = 0.5) +
-  geom_text(aes(label = ifelse(is_outlier2, site_spp, NA)), 
+  geom_text(aes(label = ifelse(is_outlier2, site, NA)), 
             hjust = 0, vjust = 0, size = 3, nudge_x = 0.04)
 
 print(g2_final)
@@ -684,6 +712,9 @@ g_final + g2_final
 pdf("./figures/ResidenceTime_RepeatVisits.pdf", width = 9, height = 5, useDingbats = FALSE)
 g_final + g2_final
 dev.off()
+
+ggsave(plot = g_final + g2_final, bg = 'white',
+       filename = "./figures/ResidenceTime_RepeatVisits.png", width=10,height=5)
 
 
 #-----------------------------------------------------------------
@@ -879,6 +910,19 @@ kd_visits
 
 ggsave(plot = kd_visits, bg = 'white',
        filename = "./supplement/distance_nest_to_Kildalkey_againt_visits_to_Kildalkey.png", width=5,height=5)
+
+
+kd_visit = nestdistance_visits %>% 
+  filter(site_spp == "Kildalkey bay(king p, macaroni p., ses)")
+
+kd_visit %>%
+        arrange(prey.location.residenceTime)
+
+kd_visit %>%
+  arrange(prey.location.visits)
+
+table(kd_visit$spp_code, kd_visit$prey.location.residenceTime)
+table(kd_visit$spp_code, kd_visit$prey.location.visits)
 
 
 nestdistance_visits %>% 

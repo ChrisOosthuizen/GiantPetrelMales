@@ -941,3 +941,118 @@ for (current_id in ids) {
 }
 
 
+#-------------------------------------------------
+# Save all terrestrial trips
+#-------------------------------------------------
+# What files are there in the data directory? 
+ids <- unique(tr4short_trim$track_id)
+n_distinct(ids)
+
+hist(tr4short_trim$Distance)
+
+sf_points <- tr4short_trim %>%
+  filter(!is.na(tripno)) %>%
+  sf::st_as_sf(coords = c("decimal_longitude", "decimal_latitude")) %>% 
+  sf::st_set_crs(4326) 
+
+# Plot using ggplot2
+base_map <- ggplot(data = island) +
+  geom_sf(fill = "grey") +
+  coord_sf(xlim = c(minx, maxx), ylim = c(miny, maxy), expand = FALSE) +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank(),
+        strip.background = element_blank(),
+        panel.border = element_rect(colour = "black")) +
+  labs(x = "Longitude", y = "Latitude") 
+
+p11 = base_map + 
+  layer_spatial(sf_points, size = 0.75, aes(color = scientific_name)) +
+  theme(legend.position = "right") +
+  scale_colour_manual(values = c("#4daf4c", "#984ea6"), name = "Species") +
+  theme(legend.position = "none") +
+  labs(subtitle = "Terrestrial trips < 20 km") + 
+  annotate(geom = "text", x = 37.75,  y = -46.68,
+           label = "Northern giant petrel",
+           colour = "black", size = 3.5) +
+  annotate(geom = "text", x = 37.75,  y = -46.74,
+           label = "Southern giant petrel",
+           colour = "black", size = 3.5) +
+  annotate(geom = "point", x = 37.58,  y = -46.68,
+           colour = "#4daf4c", size = 3.5, shape = 16) +
+  annotate(geom = "point", x = 37.58,  y = -46.74,
+           colour = "#984ea6", size = 3.5, shape = 16) 
+
+
+p11
+
+#-------------------------------------------------
+# Save short pelagic trips
+#-------------------------------------------------
+# What files are there in the data directory? 
+ids <- unique(tr4long$track_id)
+unique(ids)
+n_distinct(ids)
+
+short_pelagic = tr4long %>%
+  filter(Maxdist < 200) 
+
+range(short_pelagic$Maxdist)   
+hist(short_pelagic$Distance)
+
+sf_short_pelagic <- short_pelagic %>%
+  filter(!is.na(tripno)) %>%
+  sf::st_as_sf(coords = c("decimal_longitude", "decimal_latitude")) %>% 
+  sf::st_set_crs(4326) %>% # WGS 84 - WGS84 - EPSG:4326
+  dplyr::arrange(track_id, date.time) %>% 
+  dplyr::group_by(scientific_name, trip_id) %>% 
+  dplyr::summarise(do_union = FALSE) %>% 
+  sf::st_cast("MULTILINESTRING")
+
+p12 = base_map + 
+  layer_spatial(sf_short_pelagic, size = 0.75, aes(color = scientific_name)) +
+  theme(legend.position = "right") + 
+  scale_colour_manual(values = c("#4daf4c", "#984ea6"), name = "Species") +
+  theme(legend.position = "none") +
+  labs(subtitle = "Pelagic trips < 100 km")
+
+p12
+
+#-------------------------------------------------
+# Save long pelagic trips
+#-------------------------------------------------
+long_pelagic = tr4long %>%
+  filter(Maxdist >= 200) 
+
+min(long_pelagic$Maxdist)   
+hist(long_pelagic$Distance)
+
+sf_long_pelagic <- long_pelagic %>%
+  filter(!is.na(tripno)) %>%
+  sf::st_as_sf(coords = c("decimal_longitude", "decimal_latitude")) %>% 
+  sf::st_set_crs(4326) %>% # WGS 84 - WGS84 - EPSG:4326
+  dplyr::arrange(track_id, date.time) %>% 
+  dplyr::group_by(scientific_name, trip_id) %>% 
+  dplyr::summarise(do_union = FALSE) %>% 
+  sf::st_cast("MULTILINESTRING")
+
+p13 = base_map + 
+  layer_spatial(sf_long_pelagic, size = 0.75, aes(color = scientific_name)) +
+  theme(legend.position = "right") + 
+  scale_colour_manual(values = c("#4daf4c", "#984ea6"), name = "Species") +
+  theme(legend.position = "none") + 
+  labs(subtitle = "Pelagic trips > 200 km") + 
+  annotate(geom = "point", x = 37.58,  y = -46.74,
+           colour = "grey51", size = 3.5, shape = 16) 
+
+p13
+
+p11 + p12 + p13 + plot_annotation(tag_levels = "A") 
+
+ggsave(plot = p11 + p12 + p13 + plot_annotation(tag_levels = "A"),
+       bg = 'white',
+       filename = paste0("./figures/terrestrial_pelagic_trips.png"),width=10,height=6)
+
+
+
+
