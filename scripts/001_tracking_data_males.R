@@ -6,7 +6,7 @@
 # Foraging behaviour and habitat-use drives niche segregation in sibling seabird species. 
 # Royal Society Open Science, 7: 200649.
 
-# Edits: Chris Oosthuizen
+# Edits: Chris Oosthuizen 
 
 #--------------------
 # Load libraries
