@@ -56,17 +56,17 @@ names(vud.males.raster) <- c("Northern giant petrel", "Southern giant petrel")
 raster::plot(vud.males.raster, col = terrain.colors(100))
 
 # Calculate overlap between UDs method = "UDOI"
-overlapUDOI95 <- kerneloverlaphr(kud, method = "UDOI", percent = 95, conditional = T)
-overlapUDOI95
+overlapUDOI90 <- kerneloverlaphr(kud, method = "UDOI", percent = 90, conditional = T)
+overlapUDOI90
 
 overlapUDOI50 <- kerneloverlaphr(kud, method = "UDOI", percent = 50, conditional = T)
 overlapUDOI50
 
-kerneloverlaphr(kud, method="HR", percent = 95, conditional=TRUE)
+kerneloverlaphr(kud, method="HR", percent = 90, conditional=TRUE)
 kerneloverlaphr(kud, method="HR", percent = 50, conditional=TRUE)
 
 # Area of UD (NB: have to check whether this is correct based on projection)
-kernel.area(kud, percent = c(50, 95),
+kernel.area(kud, percent = c(50, 90),
             unin = c("m"),    
             unout = c("km2"), standardize = FALSE)
 
@@ -88,21 +88,21 @@ sgpm$sex <- "Male"
 
 # Bind
 kern <- rbind(ngpm, sgpm)
-kern <- kern[kern$val <= 95, ]
+kern <- kern[kern$val <= 90, ]
 head(kern)
 
 #------------------------------------------------------
 # Polygons for UD (outlines)
 #------------------------------------------------------
-contour95 <- getverticeshr(kud, percent = 95)
+contour90 <- getverticeshr(kud, percent = 90)
 contour50 <- getverticeshr(kud, percent = 50)
 
 # Convert SpatialPolygonsDataFrame to sf object
-contour95_sf <- st_as_sf(contour95)
+contour90_sf <- st_as_sf(contour90)
 # Filter the sf object for id NGP and SGP
-contour95_spp <- contour95_sf %>% 
+contour90_spp <- contour90_sf %>% 
   filter(id %in% c("NGP", "SGP"))
-contour95_spp$scientific_name = c("Northern giant petrel", "Southern giant petrel")
+contour90_spp$scientific_name = c("Northern giant petrel", "Southern giant petrel")
 
 # Convert SpatialPolygonsDataFrame to sf object
 contour50_sf <- st_as_sf(contour50)
@@ -178,10 +178,10 @@ marionmap_UDall = marionmap_UDall +
 
 marionmap_UDall 
   
-# Add 95 or 50 % UD polygon lines
+# Add 90 or 50 % UD polygon lines
 marionmap_UDall = marionmap_UDall + 
   ggnewscale::new_scale_color() + 
-   geom_sf(data = contour95_spp, fill = "transparent", color = "brown") + # ,lty = "dotted")+ 
+   geom_sf(data = contour90_spp, fill = "transparent", color = "brown") + # ,lty = "dotted")+ 
  # geom_sf(data = contour50_spp, fill = "transparent", color = "black")+ 
   facet_wrap(~scientific_name) +
   coord_sf(xlim = c(xmin, xmax), ylim = c(ymin, ymax)) # this keeps the map extent to Marion.
@@ -254,10 +254,10 @@ kildalkeymapUD = kildalkeymapUD +
 
 kildalkeymapUD
 
-# Add 95 or 50 % UD polygon lines
+# Add 90 or 50 % UD polygon lines
 kildalkeymapUD = kildalkeymapUD + 
   ggnewscale::new_scale_color() + 
-  geom_sf(data = contour95_spp, fill = "transparent", color = "brown") + # ,lty = "dotted")+ 
+  geom_sf(data = contour90_spp, fill = "transparent", color = "brown") + # ,lty = "dotted")+ 
   geom_sf(data = contour50_spp, fill = "transparent", color = "black")+ 
   facet_wrap(~scientific_name) +
   coord_sf(xlim = c(xmin, xmax), ylim = c(ymin, ymax)) # this keeps the map extent to Marion.
@@ -275,7 +275,9 @@ marionmap_UDall2 = marionmap_UDall +
         axis.title.x=element_blank()) +
   theme(axis.text.x = element_text(size = 9),
         axis.text.y = element_text(size = 9)) + 
-  theme(plot.margin = margin(1, 1, 1, 1))
+  theme(plot.margin = margin(1, 1, 1, 1)) + 
+  annotation_scale(location = "bl", width_hint = 0.5, text_cex = 0.8,
+                   height = unit(0.2, "cm")) 
   
 kildalkeymapUD2 = kildalkeymapUD + 
   theme(axis.text.x = element_text(size = 9),
@@ -284,7 +286,9 @@ kildalkeymapUD2 = kildalkeymapUD +
   annotate(geom = "text", x = 37.868, y = -46.923,
            label = "Bullard\nNorth",
            colour = "black", size = 3) + 
-  theme(plot.margin = margin(1, 1, 1, 1))
+  theme(plot.margin = margin(1, 1, 1, 1)) + 
+  annotation_scale(location = "br", width_hint = 0.3, text_cex = 0.8,
+                   height = unit(0.2, "cm")) 
 
 combined_plot = marionmap_UDall2 / kildalkeymapUD2 + 
   plot_layout(heights = c(1, 2.15)) & 
@@ -327,7 +331,7 @@ temp = dat %>%
   kern <- data.frame(kern)
   colnames(kern ) <- c("lon", "lat", "val")
   kern$track_id = current_id
-  kern <- kern[kern$val <= 95, ]
+  kern <- kern[kern$val <= 90, ]
   head(kern)
   
   #---------------------------------------------------------------------
@@ -615,7 +619,7 @@ g = ggplot(prey_dat, aes(x = scientific_name,
                          color = scientific_name , fill = scientific_name)) +
   #scale_y_continuous(lim = c(0,25)) +
   scale_colour_manual(values = c("#4daf4c", "#984ea5"), name = "Species") +
-  ylab("Residence time") + 
+  ylab("Residence time (hour)") + 
   xlab("Species") + 
   gg_theme() +
   theme(legend.position = "none") 
@@ -637,7 +641,7 @@ prey_dat <- prey_dat %>%
 # Create the final plot with labels
 g_final <- ggplot(prey_dat, aes(x = x_position, y = y_position, color = scientific_name, fill = scientific_name)) +
   scale_colour_manual(values = c("#4daf4c", "#984ea5"), name = "Species") +
-  ylab("Residence time") + 
+  ylab("Residence time (hour)") + 
   xlab("Species") + 
   gg_theme() +
   theme(legend.position = "none") 
@@ -786,14 +790,14 @@ beeswarm_gnest
 unique(nest_prey_dist$site_spp)
 
 nest_bullard = nest_prey_dist %>%
-             dplyr::filter(site_spp == "Bullard north(macaroni p., ses)")
+             dplyr::filter(site_spp == "Bullard North(macaroni p., ses)")
 
 nest_bull <- ggplot(nest_bullard, aes(x = spp_code, 
                                     y = Distance, 
                                     color = spp_code , fill = spp_code )) +
   #  scale_y_continuous(lim = c(0,25)) +
   scale_colour_manual(values = c("#4daf4c", "#984ea5"), name = "Species") +
-  ylab("Distance to prey sites") + 
+  ylab("Distance to Bullard North (km)") + 
   xlab("Species") + 
   gg_theme() +
   theme(legend.position = "none") 
@@ -802,8 +806,8 @@ beeswarm_nest_bull = nest_bull +
   stat_summary(
     fun = median, geom = "point", 
     shape = 95, size = 20) +
-  ggbeeswarm::geom_quasirandom(size = 3, width = .33, alpha = .5)  +
-  labs(subtitle = "Distance: petrel nests to Bullard North")
+  ggbeeswarm::geom_quasirandom(size = 3, width = .33, alpha = .5)#  +
+ # labs(subtitle = "Distance: petrel nests to Bullard North")
 
 beeswarm_nest_bull
 
@@ -812,14 +816,14 @@ beeswarm_nest_bull
 #---------------------------------------------
 
 nest_kd = nest_prey_dist %>%
-  dplyr::filter(site_spp == "Kildalkey bay(king p, macaroni p., ses)")
+  dplyr::filter(site_spp == "Kildalkey Bay(king p, macaroni p., ses)")
 
 nest_kd <- ggplot(nest_kd, aes(x = spp_code, 
                                       y = Distance, 
                                       color = spp_code , fill = spp_code )) +
   #  scale_y_continuous(lim = c(0,25)) +
   scale_colour_manual(values = c("#4daf4c", "#984ea5"), name = "Species") +
-  ylab("Distance to prey sites") + 
+  ylab("Distance to Kildalkey Bay (km)") + 
   xlab("Species") + 
   gg_theme() +
   theme(legend.position = "none") 
@@ -828,15 +832,17 @@ beeswarm_nest_kd = nest_kd +
   stat_summary(
     fun = median, geom = "point", 
     shape = 95, size = 20) +
-  ggbeeswarm::geom_quasirandom(size = 3, width = .33, alpha = .5)  +
-  labs(subtitle = "Distance: petrel nests to Kildalkey Bay")
+  ggbeeswarm::geom_quasirandom(size = 3, width = .33, alpha = .5)  #+
+ # labs(subtitle = "Distance: petrel nests to Kildalkey Bay")
 
 beeswarm_nest_kd
 
-beeswarm_nest_bull + beeswarm_nest_kd
+ggsave(plot = beeswarm_nest_kd, bg = 'white',
+       filename = "./supplement/distance_nest_to_kildalkey.png", width=4,height=4)
 
-ggsave(plot = beeswarm_nest_bull + beeswarm_nest_kd, bg = 'white',
-       filename = "./supplement/distance_nest_to_prey.png", width=10,height=5)
+ggsave(plot = beeswarm_nest_bull, bg = 'white',
+       filename = "./supplement/distance_nest_to_bullard.png", width=4,height=4)
+
 
 
 #-----------------------------------------------
@@ -940,7 +946,7 @@ nestdistance_visits %>%
              color = spp_code)) + 
   geom_point() + 
   gg_theme()+
-  labs(subtitle = "Distance (petrel nests to all sites) vs. Residence time")
+  labs(subtitle = "Distance (petrel nests to all sites) vs. Residence time (hour)")
 
 
 

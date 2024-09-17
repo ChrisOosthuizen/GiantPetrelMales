@@ -76,6 +76,8 @@ sampling_rate = dat %>%
 mean(sampling_rate$time_diff_min, na.rm = T)
 median(sampling_rate$time_diff_min, na.rm = T)
 
+max(dat$Distance)
+
 #---------------------------------
 # Calculate trip travel distances 
 #---------------------------------
@@ -182,6 +184,8 @@ mod_trip_max_spp <- brm(max_dist ~ scientific_name + (1 | track_id),
 
 performance::check_predictions(mod_trip_max_null) 
 performance::check_predictions(mod_trip_max_spp) 
+
+plot(mod_trip_max_spp )
 
 # model comparison / confirmation
 loo_null = loo(mod_trip_max_null)
@@ -338,6 +342,8 @@ mod_track_spp <- brm(trackdistance ~ scientific_name + (1 | track_id),
 performance::check_predictions(mod_track_null) 
 performance::check_predictions(mod_track_spp) 
 
+plot(mod_track_spp)
+
 # model comparison / confirmation
 loo_null_track = loo(mod_track_null)
 loo_logn_track = loo(mod_track_spp)
@@ -474,3 +480,4 @@ ggplot(pred, aes(x = draw, fill = factor(scientific_name))) +
 #  facet_grid(~ scientific_name, labeller = label_both) 
 
 marginaleffects::avg_slopes(mod_trip_max_spp, conf_level = 0.9)
+

@@ -466,6 +466,7 @@ plot(sort(tripdists[tripdists < 100]))
 #abline(h = c(40), col = "red")
 abline(h = c(20), col = "red")
 
+
 ## Plots
 tr4 <- tr3
 tr4$lag <- NA
