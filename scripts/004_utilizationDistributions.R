@@ -1,7 +1,12 @@
-# Giant Petrels - Utilization distributions
 
-## Original script by Ryan Reisinger
-## Modified by Chris Oosthuizen
+# Marion Island Giant Petrels - Utilization distributions
+
+# Original code by Ryan Reisinger, from the paper:
+# Reisinger RR, Carpenter-Kling T, Connan M, Cherel Y, Pistorius PA. 2020. 
+# Foraging behaviour and habitat-use drives niche segregation in sibling seabird species. 
+# Royal Society Open Science, 7: 200649.
+
+# Edits: Chris Oosthuizen
 
 library(tidyverse)
 library(adehabitatHR)
@@ -189,9 +194,9 @@ marionmap_UDall = marionmap_UDall +
 marionmap_UDall
 
 # save plot
-pdf("./figures/utilization_distributions.pdf", width = 9, height = 9, useDingbats = FALSE)
-marionmap_UDall
-dev.off()
+# pdf("./figures/utilization_distributions.pdf", width = 9, height = 9, useDingbats = FALSE)
+# marionmap_UDall
+# dev.off()
 
 
 #---------------------------------------------------------------------
@@ -264,10 +269,10 @@ kildalkeymapUD = kildalkeymapUD +
 
 kildalkeymapUD 
 
-# save plot
-pdf("./figures/utilization_distributions_kildalkey.pdf", width = 6, height = 6, useDingbats = FALSE)
-kildalkeymapUD
-dev.off()
+# # save plot
+# pdf("./figures/utilization_distributions_kildalkey.pdf", width = 6, height = 6, useDingbats = FALSE)
+# kildalkeymapUD
+# dev.off()
 
 
 marionmap_UDall2 = marionmap_UDall + 
@@ -299,9 +304,13 @@ combined_plot = marionmap_UDall2 / kildalkeymapUD2 +
 combined_plot
 
 # save plot
-pdf("./figures/utilization_distributions_combined.pdf", width = 6, height = 6, useDingbats = FALSE)
+pdf("./figures/utilization_distributions.pdf", width = 6, height = 6, useDingbats = FALSE)
 combined_plot
 dev.off()
+
+ggsave(plot = combined_plot, bg = 'white',
+       filename = "./figures/utilization_distributions.png", width=6,height=7)
+
 
 #--------------------------------
 # Do this for each individual:
@@ -710,15 +719,31 @@ g2_final <- g2_final +
 
 print(g2_final)
 
-g_final + g2_final
 
-# save plot
-pdf("./figures/ResidenceTime_RepeatVisits.pdf", width = 9, height = 5, useDingbats = FALSE)
-g_final + g2_final
-dev.off()
+# Load the image as a raster object
+img <- grid::rasterGrob(png::readPNG("./images/penguin.png"), interpolate = TRUE)
 
-ggsave(plot = g_final + g2_final, bg = 'white',
-       filename = "./figures/ResidenceTime_RepeatVisits.png", width=10,height=5)
+recurse_fig1 = g_final + 
+   annotation_custom(img, xmin = 0.41, xmax = 2.55, ymin = 65, ymax = 75) + 
+   annotation_custom(img, xmin = 2.40, xmax = 2.65, ymin = 40, ymax = 50) 
+
+recurse_fig2 = g2_final + 
+  annotation_custom(img, xmin = 0.57, xmax = 2.55, ymin = 176, ymax = 196) + 
+  annotation_custom(img, xmin = 2.40, xmax = 2.65, ymin = 88, ymax = 110) 
+  
+Rfig = recurse_fig1 + recurse_fig2 + 
+  plot_annotation(tag_levels = 'A') & 
+  theme(plot.tag = element_text(size = 12))
+
+Rfig
+
+# # save plot
+# pdf("./figures/ResidenceTime_RepeatVisits.pdf", width = 9, height = 5, useDingbats = FALSE)
+# Rfig
+# dev.off()
+
+ggsave(plot = Rfig, bg = 'white',
+       filename = "./figures/ResidenceTime_RepeatVisits.png", width=9,height=5)
 
 
 #-----------------------------------------------------------------
