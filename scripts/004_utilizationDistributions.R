@@ -158,7 +158,17 @@ marionmap = ggplot(data = island) +
     legend.box.background = element_blank(),
     legend.key.size = unit(0.7,"line"),  
     legend.title = element_text( size=9), 
-    legend.text=element_text(size=9))
+    legend.text=element_text(size=9)) + 
+    # ggplot2::annotate(geom = "text",
+    #                 x = 37.635,
+    #                 y = -46.9,
+    #                 label = "Swartkop\nPoint",
+    #                 colour = "black",
+    #                 size = 2) 
+  annotate("point", x = 37.575, y = -46.926,
+           shape = 10, size = 2, colour = "black")+
+  annotate("point", x = 37.77, y = -46.84,
+           shape = 2, size = 2, colour = "black")
 marionmap
 
 # add UDs
@@ -168,7 +178,9 @@ marionmap_UDall = marionmap +
   scale_fill_viridis(direction = 1, option = "plasma",
                      name = "UD (%)", limits = c(0, 100)) +
   labs(x = "Longitude", y = "Latitude") + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.title = element_text(size = 9, margin = margin(b = 15))) # Move UD (%) label up
+      
 
 marionmap_UDall
 
@@ -232,8 +244,8 @@ kildalkeymapUD = kildalkeymap +
   scale_fill_viridis(direction = 1, option = "plasma",
                      name = "UD (%)", limits = c(0, 100)) +
   labs(x = "Longitude", y = "Latitude") + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
-  theme(
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+    legend.title = element_text(size = 9, margin = margin(b = 15)), # Move UD (%) label up
     legend.position = "inside", legend.position.inside = c(0.98, 1),  # Adjust legend position
     legend.justification = c(1, 1),  # Justify legend to bottom-right
     legend.box.just = "right",
@@ -241,7 +253,6 @@ kildalkeymapUD = kildalkeymap +
     legend.background = element_blank(),
     legend.box.background = element_blank(),
     legend.key.size = unit(0.7,"line"),  
-    legend.title = element_text( size=9), 
     legend.text=element_text(size=9))
 
 kildalkeymapUD 
@@ -288,10 +299,19 @@ kildalkeymapUD2 = kildalkeymapUD +
   theme(axis.text.x = element_text(size = 9),
         axis.text.y = element_text(size = 9)) +
   theme(strip.text = element_blank()) + 
-  annotate(geom = "text", x = 37.868, y = -46.923,
-           label = "Bullard\nNorth",
+  annotate(geom = "text", x = 37.866, y = -46.923,
+           label = "Bullard North",
            colour = "black", size = 3) + 
-  theme(plot.margin = margin(1, 1, 1, 1)) + 
+  annotate(geom = "text", x = 37.866, y = -46.929,
+           label = "Bullard South",
+           colour = "black", size = 3) + 
+  annotate(geom = "text", x = 37.858, y = -46.944,
+           label = "Landfall Beach",
+           colour = "black", size = 3) + 
+  annotate(geom = "text", x = 37.89, y = -46.901,
+           label = "East Cape",
+           colour = "black", size = 3) + 
+    theme(plot.margin = margin(1, 1, 1, 1)) + 
   annotation_scale(location = "br", width_hint = 0.3, text_cex = 0.8,
                    height = unit(0.2, "cm")) 
 
