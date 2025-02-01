@@ -30,7 +30,7 @@ sf.nest.gp <- dat %>%
 sf.nest.gp$type = "nest"
 
 gp = rbind(sf.gp, sf.nest.gp)
-gp$type4 = paste(gp$scientific_name, gp$type)
+gp$Location_type = paste(gp$scientific_name, gp$type)
 
 #-----------------------------
 # Specifying prey locations
@@ -49,7 +49,7 @@ sf.prey <- prey %>%
 # Create map with petrel locations
 #---------------------------------
 gp_map <- gp %>%
-  mapview(zcol = "type4",               
+  mapview(zcol = "Location_type",               
           cex = 4, lwd = 0.5, alpha = 1,
           col.regions = c("green", "white", "purple", "red"),
           na.color = "transparent",
@@ -90,7 +90,7 @@ saveWidget(gp_map2 , "./supplement/leafletmap_gp_locations_preycolony_200mradius
 #---------------------------------
 gp_map_prey <- gp %>%
   filter(type == "nest") %>%
-  mapview(zcol = "type4",               
+  mapview(zcol = "Location_type",               
           cex = 4, lwd = 0.5, alpha = 1,
           col.regions = c("green",  "purple"),
           na.color = "transparent",
