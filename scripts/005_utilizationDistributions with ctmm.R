@@ -102,7 +102,7 @@ ctmm_dat
 #--------------------------------------------------------
 # Input data should be in the Movebank format. This requires LAT LON (wgs84) coordinates!
 # Define the projections 
-# Set new projection to https://epsg.io/32721
+# Set new projection to https://epsg.io/32737
 utm.prj = "+proj=utm +zone=37 +south +datum=WGS84 +units=m +no_defs "   # Chris UTM Marion
 wgs84 <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0"
 
@@ -155,7 +155,7 @@ fit_ctmm_function <- function(i){
 
 # use the fitting function in a foreach loop and parallel backend by using %dopar%
 sgp_FITS <- foreach(i=1:length(sgp_DATA), .packages='ctmm') %dopar% { fit_ctmm_function(i) }
-parallel::stopCluster(cl)
+#parallel::stopCluster(cl)
 #----------------
 # Run akde 
 #----------------
@@ -294,17 +294,17 @@ saveRDS(ngp_udpoly_est, "./output/ctmm_ngp_udpoly_est.rds")
 # raster exports UD object point-estimates distribution functions (DF) to raster objects. 
 # DF ="CDF" gives the cumulative probability per cell, which is the one you are after
 
-library(raster)
-r <- raster(MEAN, DF="CDF")
-raster::plot(r)
-r
-UDcontour = rasterToContour(r, levels = 0.95)   
-raster::plot(UDcontour, add = T, col = "blue")
-
-# Set UD > 95 % to NA so that it does not plot
-r[r > 0.95] <- NA
-r
-raster::plot(r)
+# library(raster)
+# r <- raster(MEAN, DF="CDF")
+# raster::plot(r)
+# r
+# UDcontour = rasterToContour(r, levels = 0.95)   
+# raster::plot(UDcontour, add = T, col = "blue")
+# 
+# # Set UD > 95 % to NA so that it does not plot
+# r[r > 0.95] <- NA
+# r
+# raster::plot(r)
 
 # CAREFUL! IN THESE PLOTS, THE CONTOUR MOVES AROUND AS YOU CHANGE THE RASTER IMAGE LENGTH AND HEIGHT!
 # But overall it seems to work fine.
@@ -335,4 +335,38 @@ leaflet() %>%
   addPolygons(data = ngp_udpoly_est_latlon, weight = 2, fillColor = "NA", color = "red") 
 
 parallel::stopCluster(cl)
+
+
+
+
+library(sf)
+
+# 1. Convert to sf
+sgp_sf_poly <- st_as_sf(sgp_udpoly_est_latlon)
+st_crs(sgp_sf_poly) <- 4326  # WGS84 (long-lat)
+# Convert to UTM zone 
+sgp_sf_poly_utm <- st_transform(sgp_sf_poly, crs = 32737)
+
+ggplot(data = sgp_sf_poly_utm) +
+  geom_sf(fill = "lightblue", color = "black") +
+  theme_minimal()
+
+# 1. Convert to sf
+ngp_sf_poly <- st_as_sf(ngp_udpoly_est_latlon)
+st_crs(ngp_sf_poly) <- 4326  # WGS84 (long-lat)
+# Convert to UTM zone 
+ngp_sf_poly_utm <- st_transform(ngp_sf_poly, crs = 32737)
+
+ggplot(data = ngp_sf_poly_utm) +
+  geom_sf(fill = "lightblue", color = "black") +
+  theme_minimal()
+
+
+# 2. Add to existing ggplot
+marionmap_UDall + 
+  geom_sf(data = ngp_sf_poly, fill = "lightblue", color = "black")
+
+
+
+
 

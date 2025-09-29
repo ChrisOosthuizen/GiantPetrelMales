@@ -99,6 +99,11 @@ trip_max = dat %>%
 
 trip_max
 
+trip_max %>% 
+  group_by(scientific_name) %>%
+  summarise(mean_max_dist = mean(max_dist),
+            sd_max_dist = sd(max_dist))
+
 # sum of distances between locations per trip
 track_distance = dat %>%
   group_by(scientific_name, track_id, trip_id) %>%

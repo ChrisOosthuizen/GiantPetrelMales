@@ -486,6 +486,175 @@ for (i in 1:length(trips)) {
 }
 
 
+#--------------------------------------------------------
+# Calculate proportion of points on land
+#--------------------------------------------------------
+
+# Do this at the end, instead
+# 
+# library(terra)
+# library(sf)
+# library(sp)
+# 
+# # Make map of Marion 
+# 
+# # Set new projection to https://epsg.io/32737
+# utm.prj = "+proj=utm +zone=37 +south +datum=WGS84 +units=m +no_defs "   # Chris UTM Marion
+# wgs84 <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0"
+# 
+# # Define lon-lat for Marion area 
+# xmin= 37.558 
+# xmax= 37.945 
+# ymax= -46.71
+# ymin= -47
+# 
+# # Define lon-lat for Marion area 
+# xmin= 37 
+# xmax= 38.1 
+# ymax= -46.71
+# ymin= -47.5
+# 
+# # Create an sf bounding box (in WGS84)
+# bbox_ll <- st_sfc(
+#   st_polygon(list(rbind(
+#     c(xmin, ymin),  # lower left
+#     c(xmin, ymax),  # upper left
+#     c(xmax, ymax),  # upper right
+#     c(xmax, ymin),  # lower right
+#     c(xmin, ymin)   # close polygon
+#   ))),
+#   crs = 4326
+# )
+# 
+# # Convert to UTM Zone 37S
+# bbox_utm <- st_transform(bbox_ll, crs = utm.prj)
+# 
+# # Extract bounding box from sf object
+# bb <- st_bbox(bbox_utm)
+# 
+# # 2. Create a SpatRaster in UTM with desired resolution
+# # If you already have the bounding box object `bb`
+# r <- rast(
+#   xmin = bb$xmin, xmax = bb$xmax,
+#   ymin = bb$ymin, ymax = bb$ymax,
+#   resolution = 100,  # or whatever resolution you want
+#   crs = utm.prj
+# )
+# 
+# # Read shapefile
+# # Get island shapefile
+# island = sf::st_read(dsn = "./GIS", layer = "Islands_Polygonizer")
+# island_utm <- st_transform(island, crs = utm.prj)
+# 
+# # Convert to terra vector format
+# island_vect <- vect(island_utm)
+# 
+# # Rasterize island to 1 (default is 0 or NA)
+# r_island <- rasterize(island_vect, r, field = 1, background = NA)
+# 
+# plot(r_island)
+# 
+# r_island
+# 
+# # Now set NA (or 0) to everything outside the island outline
+# r_mask <- mask(r_island, r_island)   # keep only inside
+# r_mask[!is.finite(r_mask)] <- 0      # assign 0 to sea
+# 
+# 
+# # assign UTM CRS to spatial data:
+# wgs.coord = SpatialPoints(cbind(tr4$decimal_longitude, tr4$decimal_latitude), proj4string=CRS(wgs84))
+# 
+# # To transform from one CRS to another:
+# utm.coord <- spTransform(wgs.coord, CRS(utm.prj))
+# 
+# tr4$lon.x <- utm.coord$coords.x1
+# tr4$lat.y <- utm.coord$coords.x2
+# 
+# # Convert lat lon locations to SpatVector (points)
+# land_pts <- vect(tr4, geom = c("lon.x", "lat.y"), crs = crs(r_island))
+# 
+# # Now extract values
+# vals <- terra::extract(r_mask, land_pts)
+# 
+# tr4$on_island <- vals[,2] == 1
+# 
+# unique(tr4$on_island)
+# 
+# # Convert raster to data.frame
+# island_df <- as.data.frame(r_mask, xy = TRUE, na.rm = TRUE)
+# 
+# # Plot with ggplot
+# 
+# # Use this to restrict ggplot to island area:
+# xmin = 341412.6
+# ymin = 4717331.7
+# xmax = 438218.2
+# ymax = 4875556.3 
+# 
+# # plot points on land
+# ggplot() +
+#   geom_raster(data = island_df, aes(x = x, y = y, fill = as.factor(layer))) +
+#   geom_point(data = tr4, aes(x = lon.x, y = lat.y, color = as.factor(on_island)))+
+#   scale_fill_manual(
+#     name = "layer",
+#     values = c("0" = "lightblue", "1" = "grey70")   # adjust for your raster values
+#   ) +
+#   scale_color_manual(
+#     name = "on_island",
+#     values = c("TRUE" = "red", "FALSE" = "darkgreen")      # adjust for your on_island coding
+#   ) +
+#   coord_equal(xlim = c(xmin, xmax), ylim = c(ymin, ymax)) +  # set your own bounds
+#   theme_minimal()
+# 
+# 
+# #-------------------
+# # Make a buffer:
+# #-------------------
+# 
+# # Suppose r_island is your raster with only 1's inside island
+# # Convert raster to polygon (dissolve to single island outline)
+# island_poly <- as.polygons(r_mask, dissolve = TRUE)
+# island_main <- island_poly[which.max(expanse(r_mask)), ]
+# 
+# # R session aborts if we don't simplify the island polygon before buffering
+# # You don’t need every tiny pixel edge when making a buffer:
+# # Simplify polygon to reduce complexity
+# island_simpl <- simplifyGeom(island_main, tolerance = 500)  # 500 m tolerance (tune as needed)
+# plot(island_simpl)
+# 
+# # Make a buffer of x km around island
+# # Buffer with 2000 m
+# # Important: buffering distance is in *map units* (meters if CRS is projected)
+# island_buffer <- buffer(island_simpl, width = 2000)
+# plot(island_buffer)
+# island_buffer
+# 
+# 
+# # Now test points against buffered polygon
+# # Check which points fall in the buffered island polygon
+# inside_buffer <- relate(land_pts, island_buffer, "intersects")
+# 
+# tr4$on_island_buffer <- inside_buffer
+# 
+# # Plot with ggplot
+# ggplot() +
+#   geom_raster(data = island_df, aes(x = x, y = y, fill = as.factor(layer))) +
+#   geom_point(data = tr4, aes(x = lon.x, y = lat.y, color = as.factor(on_island_buffer))) +
+#   scale_fill_manual(
+#     name = "layer",
+#     values = c("0" = "lightblue", "1" = "grey70")   # adjust for your raster values
+#   ) +
+#   scale_color_manual(
+#     name = "on_island_buffer",
+#     values = c("TRUE" = "red", "FALSE" = "darkgreen")      # adjust for your on_island coding
+#   ) +
+#   coord_equal(xlim = c(xmin, xmax), ylim = c(ymin, ymax)) +  # set your own bounds
+#   theme_minimal()
+# 
+# # Calculate proportion of points in the buffer or on land
+# table(tr4$on_island_buffer)
+# mean(tr4$on_island_buffer) # Because in R, TRUE is treated as 1 and FALSE as 0, so the mean = proportion of TRUE.
+
 #-------------------------------------------------
 # Split ocean (long) and terrestial (short) trips
 #-------------------------------------------------
@@ -679,6 +848,154 @@ pdf("./supplement/trackingPeriods_28individuals_instudy.pdf", width = 6, height 
 print(p2)
 dev.off()
 
+
+p2_ms = ggplot(data = summary_short) +
+  geom_linerange(
+    aes(x = individual_id,
+        ymin = plot_proxy_start,
+        ymax = plot_proxy_end,
+        colour = scientific_name)
+  ) +
+  scale_colour_manual(values = c("#4daf4a", "#984ea3"), name = "Species") +
+  facet_wrap(~year, ncol = 1, scales = "free_y", drop = TRUE) +
+  coord_flip() +
+  gg_theme() +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    strip.text = element_blank()   # <- removes facet headers
+  ) +
+  scale_y_datetime(
+    breaks = p1_labels$date,
+    labels = p1_labels$label
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 10),
+    axis.text.y = element_text(size = 8)
+  ) +
+  ylab("Date") +
+  xlab("Individual") +
+  theme(axis.text.y = element_blank(),
+          axis.ticks.y = element_blank()) + 
+  geom_text(
+  data = data.frame(
+    year = c(2015, 2016, 2017),   # your facet variable values
+    x = c(15,6.3,7.3),
+    y = as.POSIXct("2024-09-20")  # pick any date within your y-axis range
+  ),
+  aes(x = x, y = y, label = year),
+  hjust = 1.1, vjust = 1.1,
+  inherit.aes = FALSE
+)
+
+p2_ms
+
+
+
+p2_ms = ggplot(data = summary_short) +
+  geom_linerange(
+    aes(x = individual_id,
+        ymin = plot_proxy_start,
+        ymax = plot_proxy_end,
+        colour = scientific_name, linetype = scientific_name)
+  ) +
+  scale_colour_manual(values = c("#4daf4a", "#984ea3"), name = "Species") +
+  scale_linetype_manual(
+    values = c("solid",  # solid line
+               "solid")) +  # dotted line
+  facet_wrap(~year, ncol = 1, scales = "free_y", drop = TRUE) +
+  coord_flip() +
+  gg_theme() +
+   theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    strip.text = element_blank()   # <- removes facet headers
+  ) +
+  # hide the default legend
+  theme(legend.position = "none") +
+  scale_y_datetime(
+    breaks = p1_labels$date,
+    labels = p1_labels$label
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 10),
+    axis.text.y = element_text(size = 8)
+  ) +
+  ylab("Date") +
+  xlab("Individuals") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + 
+  geom_text(
+    data = data.frame(
+      year = c(2015, 2016, 2017),   # your facet variable values
+      x = c(15,6.3,7.3),
+      y = as.POSIXct("2024-09-21")  # pick any date within your y-axis range
+    ),
+    aes(x = x, y = y, label = year),
+    hjust = 1.1, vjust = 1.1,
+    inherit.aes = FALSE
+  ) +
+
+  # add manual legend per facet
+  geom_text(
+    data = data.frame(
+      year = c(2015, 2016, 2017),
+      x = c(13, 5.3, 6.3),
+      y = as.POSIXct("2024-09-16"),
+      label = "NGP",
+      colour = "#4daf4a"
+    ),
+    aes(x = x, y = y, label = label, colour = I(colour)),
+    hjust = 0, vjust = 1.1, inherit.aes = FALSE, cex = 3.5
+  ) +
+  geom_text(
+    data = data.frame(
+      year = c(2015, 2016, 2017),
+      x = c(11, 4.4, 5.3),
+      y = as.POSIXct("2024-09-16"),
+      label = "SGP",
+      colour = "#984ea3"
+    ),
+    aes(x = x, y = y, label = label, colour = I(colour)),
+    hjust = 0, vjust = 1.1, inherit.aes = FALSE, cex = 3.5
+  )
+
+  p2_ms
+
+  
+  
+# p2_ms = p2_ms + 
+# 
+#     # add distinct start/end markers by species
+#   geom_point(
+#     aes(x = individual_id,
+#         y = plot_proxy_start,
+#         colour = scientific_name,
+#         shape = scientific_name),
+#     size = 0.8
+#   ) +
+#     geom_point(
+#       aes(x = individual_id,
+#           y = plot_proxy_end,
+#           colour = scientific_name,
+#           shape = scientific_name),
+#       size = 0.8
+#     ) +
+#   scale_shape_manual(
+#       values = c(15,   # open triangle
+#                  16)   # plus sign
+#     )
+#   
+# p2_ms
+  
+pdf("./figures/trackingPeriods_28individuals_instudy.pdf", width = 3, height = 6, useDingbats = FALSE)
+print(p2_ms)
+dev.off()
+
 #-------------------
 # Tidy up and save
 #-------------------
@@ -704,7 +1021,7 @@ tr4short_trim = merge(tr4short_trim, locs_per_trip, by = "trip_id")
 head(tr4short_trim)
 # tr4short_trim = subset(tr4short_trim, tr4short_trim$n > 2)  # all > 2
 
-saveRDS(tr4short_trim, "./output/maleGP_terrestrial_foraging_trips.rds")
+# saveRDS(tr4short_trim, "./output/maleGP_terrestrial_foraging_trips.rds")
 
 n_distinct(tr4short_trim$track_id)  # individuals
 n_distinct(tr4short_trim$trip_id)   # trips
@@ -1056,4 +1373,226 @@ ggsave(plot = p11 + p12 + p13 + plot_annotation(tag_levels = "A"),
 
 
 
+#--------------------------------------------------------------------------------
+# Calculate proportion of points on land for trips within 20 km (tr4short_trim)
+#--------------------------------------------------------------------------------
+library(terra)
+library(sf)
+library(sp)
 
+# Make map of Marion 
+
+# Set new projection to https://epsg.io/32737
+utm.prj = "+proj=utm +zone=37 +south +datum=WGS84 +units=m +no_defs "   # Chris UTM Marion
+wgs84 <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0"
+
+# Define lon-lat for Marion area 
+xmin= 37 
+xmax= 38.1 
+ymax= -46.71
+ymin= -47.5
+
+# Create an sf bounding box (in WGS84)
+bbox_ll <- st_sfc(
+  st_polygon(list(rbind(
+    c(xmin, ymin),  # lower left
+    c(xmin, ymax),  # upper left
+    c(xmax, ymax),  # upper right
+    c(xmax, ymin),  # lower right
+    c(xmin, ymin)   # close polygon
+  ))),
+  crs = 4326
+)
+
+# Convert to UTM Zone 37S
+bbox_utm <- st_transform(bbox_ll, crs = utm.prj)
+
+# Extract bounding box from sf object
+bb <- st_bbox(bbox_utm)
+
+# 2. Create a SpatRaster in UTM with desired resolution
+# If you already have the bounding box object `bb`
+r <- rast(
+  xmin = bb$xmin, xmax = bb$xmax,
+  ymin = bb$ymin, ymax = bb$ymax,
+  resolution = 100,  # or whatever resolution you want
+  crs = utm.prj
+)
+
+# Read shapefile
+# Get island shapefile
+island = sf::st_read(dsn = "./GIS", layer = "Islands_Polygonizer")
+island_utm <- st_transform(island, crs = utm.prj)
+
+# Convert to terra vector format
+island_vect <- vect(island_utm)
+
+# Rasterize island to 1 (default is 0 or NA)
+r_island <- rasterize(island_vect, r, field = 1, background = NA)
+
+plot(r_island)
+
+r_island
+
+# Now set NA (or 0) to everything outside the island outline
+r_mask <- mask(r_island, r_island)   # keep only inside
+r_mask[!is.finite(r_mask)] <- 0      # assign 0 to sea
+
+
+# assign UTM CRS to spatial data:
+wgs.coord = SpatialPoints(cbind(tr4short_trim$decimal_longitude, tr4short_trim$decimal_latitude), proj4string=CRS(wgs84))
+
+# To transform from one CRS to another:
+utm.coord <- spTransform(wgs.coord, CRS(utm.prj))
+
+tr4short_trim$lon.x <- utm.coord$coords.x1
+tr4short_trim$lat.y <- utm.coord$coords.x2
+
+# Convert lat lon locations to SpatVector (points)
+land_pts <- vect(tr4short_trim, geom = c("lon.x", "lat.y"), crs = crs(r_island))
+
+# Now extract values
+vals <- terra::extract(r_mask, land_pts)
+
+tr4short_trim$on_island <- vals[,2] == 1
+
+unique(tr4short_trim$on_island)
+
+# Convert raster to data.frame
+island_df <- as.data.frame(r_mask, xy = TRUE, na.rm = TRUE)
+
+# Plot with ggplot
+
+# Use this to restrict ggplot to island area:
+xmin = 341412.6
+ymin = 4717331.7
+xmax = 438218.2
+ymax = 4875556.3 
+
+# plot points on land
+ggplot() +
+  geom_raster(data = island_df, aes(x = x, y = y, fill = as.factor(layer))) +
+  geom_point(data = tr4short_trim, aes(x = lon.x, y = lat.y, color = as.factor(on_island)))+
+  scale_fill_manual(
+    name = "layer",
+    values = c("0" = "lightblue", "1" = "grey70")   # adjust for your raster values
+  ) +
+  scale_color_manual(
+    name = "on_island",
+    values = c("TRUE" = "red", "FALSE" = "darkgreen")      # adjust for your on_island coding
+  ) +
+  coord_equal(xlim = c(xmin, xmax), ylim = c(ymin, ymax)) +  # set your own bounds
+  theme_minimal()
+
+# Calculate proportion of points on land
+table(tr4short_trim$on_island)
+mean(tr4short_trim$on_island) # Because in R, TRUE is treated as 1 and FALSE as 0, so the mean = proportion of TRUE.
+
+
+#-------------------
+# Make a buffer:
+#-------------------
+
+# Suppose r_island is your raster with only 1's inside island
+# Convert raster to polygon (dissolve to single island outline)
+island_poly <- as.polygons(r_mask, dissolve = TRUE)
+island_main <- island_poly[which.max(expanse(r_mask)), ]
+
+# R session aborts immediately if we don't simplify the island polygon before buffering
+# You don’t need every tiny pixel edge when making a buffer:
+# Simplify polygon to reduce complexity
+island_simpl <- simplifyGeom(island_main, tolerance = 100)  # 100 m tolerance (R aborts when this is too small, like 50)
+plot(island_simpl)
+
+#---------------------------------------
+# Make a buffer of x km around island
+#---------------------------------------
+# Buffer with 1000 m
+# Important: buffering distance is in *map units* (meters if CRS is projected)
+island_buffer <- buffer(island_simpl, width = 1000)
+plot(island_buffer)
+island_buffer
+# Now test points against buffered polygon
+# Check which points fall in the buffered island polygon
+inside_buffer <- relate(land_pts, island_buffer, "intersects")
+tr4short_trim$on_island_buffer_1km <- inside_buffer
+
+# Buffer with 500 m
+# Important: buffering distance is in *map units* (meters if CRS is projected)
+island_buffer <- buffer(island_simpl, width = 500)
+# Now test points against buffered polygon
+# Check which points fall in the buffered island polygon
+inside_buffer <- relate(land_pts, island_buffer, "intersects")
+tr4short_trim$on_island_buffer_0.5km <- inside_buffer
+
+# Buffer with 50 m
+# Important: buffering distance is in *map units* (meters if CRS is projected)
+island_buffer <- buffer(island_simpl, width = 50)
+# Now test points against buffered polygon
+# Check which points fall in the buffered island polygon
+inside_buffer <- relate(land_pts, island_buffer, "intersects")
+tr4short_trim$on_island_buffer_0.05km <- inside_buffer
+
+# Plot with ggplot
+ggplot() +
+  geom_raster(data = island_df, aes(x = x, y = y, fill = as.factor(layer))) +
+  geom_point(data = tr4short_trim, aes(x = lon.x, y = lat.y, color = as.factor(on_island_buffer_1km))) +
+  scale_fill_manual(
+    name = "layer",
+    values = c("0" = "lightblue", "1" = "grey70")   # adjust for your raster values
+  ) +
+  scale_color_manual(
+    name = "on_island_buffer_1km",
+    values = c("TRUE" = "red", "FALSE" = "darkgreen")      # adjust for your on_island coding
+  ) +
+  coord_equal(xlim = c(xmin, xmax), ylim = c(ymin, ymax)) +  # set your own bounds
+  theme_minimal()
+
+# Calculate proportion of points in the 2 km buffer or on land
+table(tr4short_trim$on_island_buffer_1km)
+mean(tr4short_trim$on_island_buffer_1km) # Because in R, TRUE is treated as 1 and FALSE as 0, so the mean = proportion of TRUE.
+
+
+# Plot with ggplot: 500 m buffer
+ggplot() +
+  geom_raster(data = island_df, aes(x = x, y = y, fill = as.factor(layer))) +
+  geom_point(data = tr4short_trim, aes(x = lon.x, y = lat.y, color = as.factor(on_island_buffer_0.5km))) +
+  scale_fill_manual(
+    name = "layer",
+    values = c("0" = "lightblue", "1" = "grey70")   # adjust for your raster values
+  ) +
+  scale_color_manual(
+    name = "on_island_buffer_0.5km",
+    values = c("TRUE" = "red", "FALSE" = "darkgreen")      # adjust for your on_island coding
+  ) +
+  coord_equal(xlim = c(xmin, xmax), ylim = c(ymin, ymax)) +  # set your own bounds
+  theme_minimal()
+
+# Calculate proportion of points in the 500m buffer or on land
+table(tr4short_trim$on_island_buffer_0.5km)
+mean(tr4short_trim$on_island_buffer_0.5km) # Because in R, TRUE is treated as 1 and FALSE as 0, so the mean = proportion of TRUE.
+
+# Plot with ggplot
+ggplot() +
+  geom_raster(data = island_df, aes(x = x, y = y, fill = as.factor(layer))) +
+  geom_point(data = tr4short_trim, aes(x = lon.x, y = lat.y, color = as.factor(on_island_buffer_0.05km))) +
+  scale_fill_manual(
+    name = "layer",
+    values = c("0" = "lightblue", "1" = "grey70")   # adjust for your raster values
+  ) +
+  scale_color_manual(
+    name = "on_island_buffer_0.05km",
+    values = c("TRUE" = "red", "FALSE" = "darkgreen")      # adjust for your on_island coding
+  ) +
+  coord_equal(xlim = c(xmin, xmax), ylim = c(ymin, ymax)) +  # set your own bounds
+  theme_minimal()
+
+# Calculate proportion of points in the 2 km buffer or on land
+table(tr4short_trim$on_island_buffer_0.05km)
+mean(tr4short_trim$on_island_buffer_0.05km) # Bec
+
+# 95% of the locations was on land or within 1 km of the island.
+# 92 % of the locations on land or within 500 m of the island.
+# 70 % of the locations on land or within 50 m of the island.
+
+saveRDS(tr4short_trim, "./output/maleGP_terrestrial_foraging_trips.rds")

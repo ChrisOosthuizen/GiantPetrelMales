@@ -122,3 +122,93 @@ gp_map_prey2
 # Save the leaflet map as an HTML file
 #saveWidget(gp_map2 , "./supplement/leafletmap_preycolony_200mradius.html", selfcontained = TRUE)
 
+
+# Add animations of tracks
+# Take 1 animal's data only
+
+unique(dat$track_id)
+
+dat1 = dat %>% 
+  filter(track_id == "NGP01_KD_SEP_2015") %>%
+  arrange(date.time) %>%
+  dplyr::select(lon.x, lat.y, date.time, track_id)
+
+head(dat1)
+
+# convert to sf (using your UTM proj string), then transform to WGS84 lon/lat for leaflet:
+dat1_sf <- st_as_sf(dat1, coords = c("lon.x", "lat.y"), crs = utm.prj) %>%
+  st_transform(crs = 4326)        # EPSG:4326 - lat/lon for leaflet
+
+dat1_sf$label <- as.character(dat1_sf$date.time)
+dat1_sf$Name <- as.character(dat1_sf$track_id)
+dat1_sf$time <- as.character(dat1_sf$date.time)
+
+# check
+head(dat1_sf)
+
+leaflet() %>%
+  addTiles() %>%
+  addPlayback(
+    data = dat1_sf, label = ~label,
+    popup = ~ sprintf(
+      "I am a popup for <b>%s</b> and <b>%s</b>",
+      Name, label
+    ),
+    popupOptions = popupOptions(offset = c(0, -35)),
+    options = playbackOptions(
+      radius = 3,
+      tickLen = 36000,
+      speed = 50,
+      maxInterpolationTime = 1000
+    ),
+    pathOpts = pathOptions(weight = 5)
+  )
+
+
+
+###################################################
+
+
+
+# Add points to your existing map
+gp_map_prey2 %>%
+  addCircleMarkers(
+    data = dat1,
+    lng = ~decimal_longitude,
+    lat = ~decimal_latitude,
+    radius = 4,           # size of the points
+    color = "white",        # border color
+    fillColor = "white",    # fill color
+    fillOpacity = 0.6,
+    stroke = TRUE,
+    weight = 1,
+    popup = ~as.character(date.time)  # optional: show timestamp on click
+  )
+
+
+library(leaflet.extras2)
+
+# Convert to sf in WGS84
+dat1_sf <- dat1 %>%
+  arrange(date.time) %>%
+  st_as_sf(coords = c("decimal_longitude","decimal_latitude"), crs = 4326) %>%
+  mutate(date.time = as.POSIXct(date.time, tz = "UTC"))
+
+# Add playback animation
+gp_map_prey2 %>%
+  addPlayback(
+    data = dat1_sf,
+    time = "date.time",
+    popup = ~as.character(date.time),
+    label = ~as.character(date.time),
+    pathOpts = pathOptions(weight = 2, color = "red"),
+    options = playbackOptions(
+      radius = 5,
+      speed = 1000,         # slower for testing
+      playControl = TRUE,
+      sliderControl = TRUE,
+      dateControl = TRUE
+    )
+  )
+
+
